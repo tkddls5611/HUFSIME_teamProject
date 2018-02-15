@@ -1,0 +1,49 @@
+---
+title: "gageRR"
+author: "이상인"
+date: "2017년 5월 8일"
+output: html_document
+---
+
+#### **gage RR(Type 2 study)**
+
+  * 함수 명: pca.normdist(var, part, appr, lsl = NA, usl = NA, sigma = 6, data,
+                       main = "Gage R&R Study", sub = "My MSA project",
+                       alphaLim = 0.05, digits = 4)
+
+
+  * Variables:  
+      - var : 측정 데이터
+      -	part : 부품 데이터
+      - appr : 측정 작업자 
+      -	lsl: 하한 (default = NA)
+      -	usl: 상한 (default = NA)
+      -	sigma: 연구변동,표준편차 (default = 6)
+      - data : 사용하는 데이터
+      -	mainTitle: 대제목 (default = “Gage R&R Study”)
+      -	subTitle: 소제목 (default = “My MSA project”)
+      - alphaLim: 유의수준 alpha (default = 0.05)
+      - digits: 결과값 최소단위
+  
+  * 기타 사용 package:
+    -	SixSigma: 
+        1. ss.rr() – gage RR study로 6가지 그래프를 나타내는 package.  
+
+***
+
+##### **함수 작동원리**  
+  
+1. msa.gageRR2 : ss.rr 에서 anova table, gageR&R을 console이 아닌 plot 창에 나타내기 위함.
+
+```
+  msa.gageRR2(var = var, part = part, appr = appr, lsl = lsl, usl = usl, sigma = sigma, data = data,
+              main = main, sub = sub,
+              alphaLim = alphaLim, digits = digits)
+
+```
+2. SixSigma 패키지의 ss.rr() 을 진행  
+
+```
+   ss.rr(var =var, part = part, appr = appr, lsl = lsl, usl = usl, sigma = sigma, data = data, main = main, sub = sub)
+
+```

@@ -1,0 +1,133 @@
+---
+title: "MSA Type 2 Study"
+author: "Hae-Joong"
+date: "2017년 4월 25일"
+output: html_document
+---
+
+***
+
+##Type 2 study(Gage R&R 연구)
+
+전체 측정시스템에 대한 측정능력을 평가하는 절차 측정작업자가 포함된 경우의 분석을 Type 2 Study
+포함되지 않은 경우의 분석을 Type 3 Study.
+
+***
+
+측정의 총변동량 = 공정의 변동량 + **측정시스템의 변동량(계측기와 측정작업자의 변동량)**
+
+측정시스템의 변동량 = 반복성 + 재현성
+
+***
+
+반복성(계측기변동) : 동일의 측정작업자가 동일의 계측기를 갖는 동일한 부품을 측정하였을 때 파생되는 측정의 변동
+
+재현성 : 동일한 계측기로 동일한 부품을 측정하였을 때에 측정자 간에 나타나는 측정치의 변동
+
+***
+
+###1.분산분석 방법에 의한 Gage R&R 분석 절차
+
+***
+
+패키지 : Sixsigma
+
+함수 : ss.rr()
+
+***
+
+Gage R & R (Measurement System Assessment)
+
+**Description**
+
+Performs Gage R&R analysis for the assessment of the measurement system of a process. Related to the Measure phase of the DMAIC strategy of Six Sigma.
+
+**Usage**
+
+ss.rr(var, part, appr, lsl = NA, usl = NA, sigma = 6, data,
+  main = "Six Sigma Gage R&R Study", sub = "", alphaLim = 0.05,
+  errorTerm = "interaction", digits = 4)
+
+**Arguments**
+
+var	: Measured variable
+
+part : Factor for parts
+
+appr : Factor for appraisers (operators, machines, ...)
+
+lsl : Numeric value of lower specification limit used with USL to calculate Study Variation as %Tolerance
+
+usl : Numeric value of upper specification limit used with LSL to calculate Study Variation as %Tolerance
+
+sigma : Numeric value for number of std deviations to use in calculating Study Variation
+
+data : Data frame containing the variables
+
+main :Main title for the graphic output
+
+sub	: Subtitle for the graphic output (recommended the name of the project)
+
+alphaLim : Limit to take into account interaction
+
+errorTerm	: Which term of the model should be used as error term (for the model with interation)
+
+digits : Number of decimal digits for output
+
+
+**Details**
+
+Performs an R&R study for the measured variable, taking into account part and appraiser factors. It outputs the sources of Variability, and six graphs: bar chart with the sources of Variability, plots by appraiser, part and interaction and x-bar and R control charts.
+
+**value**
+
+Analysis of Variance Table/s. Variance composition and %Study Var. Graphics.
+
+anovaTable	: The ANOVA table of the model
+anovaRed	: The ANOVA table of the reduced model (without interaction, only if interaction not significant)
+
+varComp	: A matrix with the contribution of each component to the total variation
+
+studyVar : A matrix with the contribution to the study variation
+
+ncat : Number of distinct categories
+
+***
+
+ss.rr() #함수를 기본 예제로 수행함
+
+***
+
+```{r}
+library(SixSigma)
+
+ss.rr(time1, prototype, operator, data = ss.data.rr, 
+	sub = "Six Sigma Paper Helicopter Project", 
+	alphaLim = 0.05,
+	errorTerm = "interaction",
+	lsl = 0.7,
+	usl = 1.8)
+
+str(ss.data.rr)
+```
+
+***
+
+미니탭 예제 3.1 을 ss.rr()로 Gage R&R Study를 수행함.
+
+***
+
+```{r}
+ex_3_1<-read.csv("C:/Users/IME/Desktop/ex_3.1.csv",header = TRUE) 
+#Minitab 예제문제 데이터 불러옴
+
+str(ex_3_1) #현재 모든 변수의 Data Type이 int 이다.
+
+new_ex_3_1<-data.frame(Part=as.factor(ex_3_1$Part),Operator=as.factor(ex_3_1$Operator),Data=ex_3_1$Data) # ss.rr()에 알맞은 변수를 넣기 위해 Data Type을 facotr로 변환 
+
+str(new_ex_3_1)
+
+ss.rr(Data, Part , Operator,data=new_ex_3_1,sub="Minitab Ex3_1 Test", alphaLim = 0.05, errorTerm = "interaction", lsl=9.5,usl=10.5)
+
+```
+

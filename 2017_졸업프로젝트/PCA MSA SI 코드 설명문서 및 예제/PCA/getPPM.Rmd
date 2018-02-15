@@ -1,0 +1,95 @@
+---
+title: "getPPM"
+author: "이상인"
+date: "2017년 5월 1일"
+output: html_document
+---
+
+####**전체 표준편차 구하기**
+
+  * PPM
+      - 관측성능(측정데이터에 대한 불량률): ObPerform()
+      - 기대성능(불량률을 정규분포로 계산, 전체표준편차): expPerform_overall()
+      - 기대성능(불량률을 정규분포로 계산, 군내표준편차): expPerform_ingroup()
+
+***
+
+####**obPerform**
+
+  * 함수 명: obPerform((data,LSL, USL, N)
+
+  * Variables:  
+    -	data : 사용 데이터 셋$variable(vector)
+    -	LSL: 하한
+    -	USL: 상한
+    - N : 전체 데이터 수  
+
+#####**함수 작동원리**  
+  
+1. 하측 부적합품률(ppm_down), 상측 부적합품률(ppm_up), 총 부적합품률(ppm_total)을 구함.(소수 셋째자리)  
+
+```
+  ppm_down <- round((length(data[data<LSL])/N)*1000000,digits=3)
+  ppm_up <- round((length(data[data>USL])/N)*1000000,digits=3)
+  ppm_total <- round(ppm_down + ppm_up,digits=3)
+```
+2. 구한값을 list로 변환 후 결과 출력.  
+
+```
+  obPerform_list <- list(ppm_down=ppm_down, ppm_up = ppm_up, ppm_total = ppm_total)
+```
+***
+
+####**expPerform_overall**
+
+  * 함수 명: expPerform_overall(data, LSL, USL,mean,sdOver)
+
+  * Variables:  
+    -	data : 사용 데이터 셋$variable(vector)
+    -	LSL: 하한 (default = NA)
+    -	USL: 상한 (default = NA)
+    - mean: 평균 (default = 0)
+    - sdOver: 전체 표준편차(default = 1)
+
+#####**함수 작동원리**  
+  
+1. 하측 부적합품률(ppm_down), 상측 부적합품률(ppm_up), 총 부적합품률(ppm_total)을 구함.(소수 셋째자리)  
+
+```
+  ppm_down <- round(pnorm((LSL-mean)/sdOver) * 1000000,digits =3)
+  ppm_up <- round(pnorm((USL-mean)/sdOver,lower.tail = FALSE) *1000000,digits=3)
+  ppm_total <- round(ppm_down + ppm_up,digits=3)
+```
+2. 구한값을 list로 변환 후 결과 출력.  
+
+```
+  overPerform_list <- list(ppm_down = ppm_down, ppm_up = ppm_up, ppm_total = ppm_total)
+```
+***
+
+####**expPerform_ingroup**
+
+  * 함수 명: expPerform_ingroup(data, LSL, USL, mean,sdIngroup)  
+
+  * Variables:  
+    -	data : 사용 데이터 셋$variable(vector)
+    -	LSL: 하한 (default = NA)
+    -	USL: 상한 (default = NA)
+    - mean: 평균 (default = 0)
+    - sdIngroup: 군내 표준편차(default = 1)
+
+#####**함수 작동원리**  
+  
+1. 하측 부적합품률(ppm_down), 상측 부적합품률(ppm_up), 총 부적합품률(ppm_total)을 구함.(소수 셋째자리)  
+
+```
+  ppm_down <- round(pnorm((LSL-mean)/sdIngroup) * 1000000,digits=3)
+  ppm_up <- round(pnorm((USL-mean)/sdIngroup,lower.tail =FALSE) * 1000000,digits=3)
+  ppm_total <- round(ppm_down + ppm_up,digits=3)
+```
+2. 구한값을 list로 변환 후 결과 출력.  
+
+```
+  inPerform_list <- list(ppm_down = ppm_down, ppm_up = ppm_up, ppm_total = ppm_total)
+```
+

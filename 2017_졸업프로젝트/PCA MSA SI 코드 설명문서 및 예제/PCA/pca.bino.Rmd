@@ -1,0 +1,76 @@
+---
+title: "pca.bino"
+author: "LEE SANGIN"
+date: "2017년 4월 30일"
+output: html_document
+---
+  
+####**이항분포**
+  
+  * 함수 명: pca.bino(data, Target = NA, whatGroup =1, N1 = 1, N2 = c(),
+                     alpha = 0.05,f.na.rm = TRUE,  
+                     mainTitle = "Binomial distribution", subTitle = "My PCA project")
+
+* Variables:  
+    -	data : 사용 데이터 셋(vector)
+    -	Target: 목표 값 (default = NA)
+    - whatGroup : 표본 크기 구하는 방법 (1: 상수, 2: 데이터셋, default = 1)
+    - N1: 표본 갯수(whatGroup ==1, default =1)
+    - N2: 사용될 데이터 셋 (whatGroup ==2)
+    - alpha : 유의수준(default = 0.5)
+    - f.na.rm: TRUE시 데이터셋의 NA값 제거 후 분석(default = TRUE)
+    -	mainTitle: 대제목 (default = “Binomial distribution”)
+    -	subTitle: 소제목 (default = “My PCA project”)  
+
+***
+  
+#####**함수 작동원리**  
+  
+  1. 총 검사 갯수(N) 및 부적합(결점)품 수(D)를 구함.  
+
+```
+  if(whatGroup ==1){
+    N <- N1 * length(data)
+  }else if(whatGroup==2){
+    N <- sum(N2,na.rm =  f.na.rm)
+  }
+  D <- sum(data,na.rm =  f.na.rm)
+
+```
+2. 불량률 p의 추정량(p_hat)과 p의 100(1-alpha)% 신뢰하한, 상한을 구함.  
+
+```
+  p_hat <- D/N
+  pl <- pi2 / (pi1*qf(alpha/2,df1 = pi1,df2 = pi2,lower.tail = FALSE)+pi2)
+  pu <- (pi3*qf(alpha/2,df1=pi3,df2 = pi4,lower.tail = FALSE))  
+        /(pi3*qf(alpha/2,df1=pi3,df2=pi4,lower.tail = FALSE)+pi4)
+
+
+
+```
+3. %불량품(percentD)와 이의 100(1-alpha)% 신뢰구간을 구함.  
+
+```
+  percentD <- p_hat *100
+  confInter <- list(CI_pl = round(pl*100,digits=3),  
+                    CI_pu = round(pu *100,digits=3))
+
+```
+4. 불량품 PPM(ppm)과 이의 100(1-alpha)% 신뢰구간을 구함.  
+
+```
+  ppm <- p_hat * 1000000
+  ppm_confInter <- list(CI_pl = round(pl*1000000,digits = 3),  
+                        CI_pu = round(pu * 1000000,digits=3))
+
+```
+5. 공정Z(percentD)와 이의 100(1-alpha)% 신뢰구간을 구함.  
+
+```
+  Z <- round(qnorm(1-p_hat),digits=3)
+  Z_confInter <- list(CI_pl = round(qnorm(1-pl),digits=3),  
+                      CI_pu = round(qnorm(1-pu),digits=3))
+
+```
+
+6. 시각화

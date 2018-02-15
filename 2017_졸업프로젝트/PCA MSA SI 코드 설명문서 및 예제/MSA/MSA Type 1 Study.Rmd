@@ -1,0 +1,120 @@
+---
+title: "MSA Type 1 Study"
+author: "Hae-Joong"
+date: "2017년 4월 23일"
+output: html_document
+---
+
+***
+##Type 1 study(선형성 및 치우침 연구)
+
+계측기 자체의 반복성 및 편의를 기준으로 규격이 (LSL,USL)인 해당 부품을 측정할 능력이 있는지를 평가하는 분석 절차이다.
+
+**반복성** : 동일의 평가자가 동일의 계측기를 갖고 동일한 부품을 측정하였을 때 파생되는 측정의 변동
+이때 측정치의 산포가 작으면 반복성이 좋다고 말함 
+
+**편의(치우침)** : 어떤 계측기로 동일의 제품을 측정하였을 때 얻어지는 측정치의 평균과 기준값과의 차이를 편의라고 함
+편의가 작은 경우를 정확도가 높다고 말함
+
+***
+
+Cg : 반복성만 평가하는 지표
+
+Cgk: 계측기의 반복성 및 편의를 동시에 고려한 지표
+
+***
+
+패키지 : qualityTools
+
+함수 : cg()
+
+***
+
+**Description**
+
+Function visualize the given values of measurement in a run chart and in a histogram. Furthermore the “centralized Gage potential index” Cg and the “non-centralized Gage Capability index” Cgk are calculated and displayed.
+
+**Usage**
+
+cg             (x, target, tolerance, ref.interval, facCg, facCgk, n = 0.2, 
+                type, col, pch, xlim, ylim, conf.level = 0.95, cex.val = 1.5)
+                
+cgToleranceView(x, target, tolerance, ref.interval, facCg, facCgk, n = 0.2, 연
+                type, col, pch, xlim, ylim, main, conf.level = 0.95, cex.val = 1,
+                cgOut = TRUE)
+                
+cgHist         (x, target, tolerance, ref.interval, facCg, facCgk, n = 0.2, col,
+                xlim, ylim, main, conf.level = 0.95, cex.val = 1, cgOut = TRUE)
+                
+cgRunChart     (x, target, tolerance, ref.interval, facCg, facCgk, n = 0.2, 
+                type, col, pch, xlim, ylim,main, conf.level = 0.95, cex.val = 1,
+                cgOut = TRUE)
+
+
+**Arguments**
+
+x	: a vector containing the measured values.
+
+target : a numeric value giving the expected target value for the x-values.
+
+tolerance :	vector of length 2 giving the lower and upper specification limits.
+
+ref.interval : numeric value giving the confidence intervall on which the calculation is based. By default it is based on 6 sigma methodology. Regarding the normal distribution this relates to pnorm(3) - pnorm(-3) which is exactly 99.73002 percent If the calculation is based on an other sigma value ref.interval needs to be adjusted. To give an example: If the sigma-level is given by 5.15 the ref.interval relates to pnorm(5.15/2)-pnorm(-5.15/2) which is exactly 0.989976 percent.
+
+facCg	: numeric value as a factor for the calculation of the gage potential index. The default Value for facCg is ‘0.2’.
+
+facCgk : numeric value as a factor for the calulation of the gage capability index. The default value for facCgk is ‘0.1’.
+
+n : numeric value between ‘0’ and ‘1’ giving the percentage of the tolerance field (values between the upper and lower specification limits given by tolerance) where the values of x should be positioned. Limit lines will be drawn. Default value is ‘0.2’.
+
+type : what type of plot should be drawn in the run chart. Possible types see plot.
+
+col	: color of the curve in the run chart.
+
+pch	: variable specifies the symbols of the run chart. Details see par.
+
+xlim : vector of length 2 giving the limits for the x axis of the run chart.
+
+ylim : vector of length 2 giving the limits for the y axis of the run chart.
+
+main : an overall title for the plot: see title.
+
+conf.level : confidence level for internal t.test checking the significance of the bias between target and mean of x. The default value is ‘0.95’. The result of the t.test is shown in the histogram on the left side.
+
+cex.val	: numeric value giving the size of the text in the legend. See also par.
+
+cgOut	: logical value deciding wether the Cg and Cgk values should be plotted in a legend. Only available for the function cgHist, cgToleranceView and cgRunChart. The default value for cgOut is ‘TRUE’.
+
+**Details**
+
+The calculation of the potential and actual gage capability are based on the following formulae:
+
+Cg = (facCg * tolerance[2]-tolerance[1])/ref.interval
+
+Cgk = (facCgk * abs(target-mean(x))/(ref.interval/2)
+
+
+```{r}
+library(qualityTools)
+
+ex_2.1<-read.csv("C:/Users/IME/Desktop/Type1study.csv",header=FALSE) # Minitab 예제2.1문제
+
+head(ex_2.1,10) #상위 10개의 데이터
+
+cg(ex_2.1$V1, 12.305, tolerance=c(12.28,12.33)) # (기준값:12.305 , 규격상한-규격하한:0.05)
+
+cgRunChart(ex_2.1$V1, 12.305, tolerance=c(12.28,12.33))
+
+cgToleranceView(ex_2.1$V1, 12.305, tolerance=c(12.28,12.33))
+
+cgHist(ex_2.1$V1, 12.305, tolerance=c(12.28,12.33))
+
+```
+
+###cg() function의 내부 구조
+
+
+```{r}
+cg
+```
+
