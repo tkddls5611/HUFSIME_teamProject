@@ -1,0 +1,242 @@
+---
+title: "movieVisualization"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+runtime: shiny
+---
+
+```{r global, include=FALSE, warning=FALSE}
+
+library(flexdashboard)
+library(highcharter)
+library(dplyr)
+library(shiny)
+library(plotly)
+library(ggplot2)
+#library(leaflet)
+library(psych)
+library(wordcloud)
+library(stringr)
+library(tm)
+library(extrafont)
+library(RColorBrewer)
+library(wordcloud2)
+
+#### 회귀분석 
+movieOrigin <- read.csv("movieFiltered22.csv") # 전처리 
+movieOrigin <- movieOrigin %>% select(-title, -release, -distributor,
+                                      -director,-X,-star.1)
+movieOrigin$season <- as.factor(movieOrigin$season)
+for(i in 10:24) movieOrigin[,i] <- as.factor(movieOrigin[,i])
+movieOrigin <- movieOrigin[movieOrigin$allpeople >50,]
+movielog <- movieOrigin
+movielog$allpeople <- log(movielog$allpeople)
+movielog$firstppl <- log(movielog$firstppl)
+movielog$directorEff <- log(movielog$directorEff)
+movielog$actorEff <- log(movielog$actorEff)
+movielog$distributorEff <- log(movielog$distributorEff)
+movielog$trailershow <- log(movielog$trailershow)
+movielog[which(is.infinite(movielog$firstppl)),] <- median(movielog$firstppl)
+movielog[which(is.infinite(movielog$allpeople)),] <- median(movielog$allpeople)
+movielog[which(is.infinite(movielog$directorEff)),] <- median(movielog$directorEff)
+movielog[which(is.infinite(movielog$actorEff)),] <- median(movielog$actorEff)
+movielog[which(is.infinite(movielog$distributorEff)),] <- median(movielog$distributorEff)
+# movielog[which(is.infinite(movielog$trailershow)),] <- 0 # Inf 없음 
+# movielog$showtime <- scale(movielog$showtime)
+colnames(movielog)[c(2,3,4,9,25,26)] <- paste0("log",colnames(movielog)[c(2,3,4,9,25,26)])
+colnames(movielog)[10:24] <- paste0("genre",1:15)
+
+set.seed(100)
+seventhreeF <- sample(c(0,1),nrow(movielog),replace = T, prob = c(0.3,0.7))
+trainF <- movielog[seventhreeF ==1, ]
+testF <- movielog[seventhreeF ==0, ]
+trainF <- na.omit(trainF)
+testF <- na.omit(testF)
+rownames(trainF) <- 1:nrow(trainF)
+
+modelFinal <- lm(logallpeople~rate+
+               logdirectorEff+ logactorEff+ logdistributorEff+
+               scale(showtime)+logtrailershow+ 
+               genre2 +genre9 + genre1 + genre5+  genre4+
+               genre6+genre7  +
+               genre10+genre8 + genre11+
+               genre12 + genre14 +
+               genre15+ 
+               I(logactorEff^2)+ I(logdistributorEff^2)
+             ,  data = trainF[-c(668,527,521,246,193,
+                                614,139,
+                                521,209,620,609,467,226, 717,187),])
+modelFinalstep <- step(modelFinal, direction = "both")
+
+genre <- c("Action", "Crime","Drama","Comedy","Adventure",
+           "Romance","SF","Documentary","Performance","Fantasy",
+           "Animation","Horror","Adult","History","Mystery",
+           "Null")
+rate <- levels(trainF$rate)
+```
+
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+
+textInput("titlenm",label = "Enter movie title")
+selectInput("rate", label = "Movie Rate",
+            levels(as.factor(rate)), selected = rate[1])
+selectInput("genre1", label = "Select 1st genre",
+            levels(as.factor(genre)),selected = genre[16])
+selectInput("genre2", label = "Select 2st genre",
+            levels(as.factor(genre)),selected = genre[16])
+selectInput("genre3", label = "Select 3st genre",
+            levels(as.factor(genre)), selected = genre[16])
+sliderInput("dirEff", label = "Director Effect:",
+            min = 0, max = 5000000, value = 1, step = 2000)
+sliderInput("actEff", label = "Actor Effect:",
+            min = 0, max = 5000000, value = 1, step = 2000)
+sliderInput("disEff", label = "Distributor Effect:",
+            min = 0, max = 5000000, value = 1, step = 2000)
+sliderInput("trail", label = "Num of View in Trailer:",
+            min = 0, max = 5000000, value = 1, step = 1)
+sliderInput("showT", label = "Show Time:",
+            min = 0, max = 250, value = 1, step = 1)
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Total Audiance
+
+```{r}
+renderValueBox({
+is2 <- 0 ; is10 <- 0 ; is11 <- 0
+if((input$genre1 =="Crime") | 
+   (input$genre2 =="Crime") |
+   (input$genre3 =="Crime")) is2 <- 1
+if((input$genre1 =="Fantasy") | 
+   (input$genre2 =="Fantasy") |
+   (input$genre3 =="Fantasy")) is10 <- 1
+if((input$genre1 =="Animation") | 
+   (input$genre2 =="Animation") |
+   (input$genre3 =="Animation")) is11 <- 1
+
+ audi <- predict(modelFinalstep, newdata=data.frame(rate = input$rate,
+                                        logdirectorEff = log(input$dirEff),
+                                        logactorEff = log(input$actEff),
+                                        logdistributorEff = log(input$disEff),
+                                        showtime = input$showT,
+                                        logtrailershow = log(input$trail),
+                                        genre2 = as.factor(is2), 
+                                        genre10 =as.factor(is10), 
+                                        genre11 = as.factor(is11)
+                                        ), interval="prediction")[[1]]
+ valueBox(round(exp(audi)),icon = "ion-android-contacts")
+})
+
+```
+
+### Star Grade
+
+```{r}
+
+renderValueBox({
+  star <- "E"
+  if(input$disEff >= 4473){
+    if(input$rate==rate[1] | input$rate==rate[3]){
+      if(input$genre1 !=genre[5] & 
+         input$genre2 !=genre[5] &
+         input$genre3 !=genre[5]){ star <- "A" }else{star <- "B"}
+    }else{
+      if(input$showT >= 118){ star <- "A" 
+      }else{
+        if(input$disEff >= 14000){
+          star <- "B"
+        }else if(input$disEff >= 7771){star <- "C"}else{star <- "D"}
+      }
+    }
+  }else if(input$genre1 ==genre[3] |
+           input$genre2 ==genre[3] |
+           input$genre3 ==genre[3]){
+    star <- "C"
+           }else{ star <- "D" }
+  
+  valueBox(star,
+           icon = ifelse(star == "A","ion-star",
+                         ifelse(star =="B","ion-ios-star-half",
+                                ifelse(star=="C","ion-ios-star-outline",
+                                       ifelse(star =="D","ion-sad",
+                                              "ion-close-circled")))),
+           color = ifelse(star =="C","warning",
+                          ifelse(star=="D","danger","primary")))
+
+})
+
+```
+
+Row { data-height=450}
+-----------------------------------------------------------------------
+
+### Corelation Matrix
+
+```{r}
+
+pairs.panels(movielog %>% select(logdirectorEff, logactorEff,
+                                 logdistributorEff,showtime,
+                                 logtrailershow,logallpeople), 
+             method = "spearman")
+  
+```
+
+### WordCloud
+
+```{r}
+
+renderWordcloud2({
+  
+  title <- paste0(as.character(input$titlenm),".txt")
+  png <- paste0(as.character(input$titlenm),".png")
+  if(file.exists(title)==T){
+    result <- readLines(title)
+    result <- strsplit(result,"\\W")
+    result <- unlist(result)
+    result <- result[which(result !="")]
+    result <- result[!is.na(result)]
+    result <- gsub('\\?','',result) 
+    result <- gsub('\\.','',result) 
+    result <- gsub('\\,','',result) 
+    result <- tolower(result)
+    
+    result2 <- Corpus(VectorSource(result))
+    stopword2 <- c(stopwords('en'),"and","but")
+    result4 <- tm_map(result2,removeWords,stopword2)
+    result5 <- TermDocumentMatrix(result4)
+    
+    mres <- as.matrix(result5)
+    wordcount <- sort(rowSums(mres),decreasing=T)
+    
+    wordcountdf <- as.data.frame(wordcount)
+    wordcountdf <- cbind.data.frame(rownames(wordcountdf),
+                                    wordcountdf)
+    subwordcountdf <- wordcountdf[wordcountdf$wordcount >= 10, ]
+    if(file.exists(png)==T){
+      print(title)
+      
+      wordcloud2(subwordcountdf, 
+                 size = 0.6,
+                 color = c( "#000000", "#525252",
+                            "#737373","#969696" ,"#D9D9D9"),  
+                 figPath = png)
+    }else{
+      wordcloud2(subwordcountdf, 
+                 size = 0.6,
+                 color = c( "#000000", "#525252",
+                            "#737373","#969696" ,"#D9D9D9"))
+    }
+  }
+})
+
+
+```
+

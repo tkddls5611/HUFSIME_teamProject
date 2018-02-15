@@ -1,0 +1,108 @@
+---
+title: "Doit R 4,5,pdf Assignment"
+author: "LEE SANGIN"
+date: "2017년 9월 24일"
+output: word_document
+---
+
+#### 04-2 혼자서해보기
+```{r}
+
+fruits <- data.frame("제품" = c("사과","딸기","수박"),
+                       "가격" = c(1800,1500,3000),
+                       "판매량" = c(24,38,13))
+fruits
+```
+
+  
+#### 05-2 혼자서해보기  
+
+Q1. `ggplot2` 패키지의 `mpg` 데이터를 사용할 수 있도록 불러온 후 복사본 만들기
+```{r}
+library(ggplot2)
+data(mpg)
+
+mpg_copy <- mpg
+head(mpg_copy)
+```
+  
+Q2. 복사본 데이터를 이용해 `cty`는 `city`로, `hwy`는 `highway`로 수정하기 
+```{r message = FALSE}
+library(dplyr)
+mpg_copy <- rename(mpg_copy, city = cty, highway = hwy)
+
+```
+  
+Q3. 변수명 바뀌었는지 확인  
+```{r message = FALSE}
+head(mpg_copy)
+```
+
+
+#### Doit_part06 pdf
+
+##### 06-2 혼자서해보기
+
+Q1. `displ`(배기량)이 4 이하인 자동차와 5 이상인 자동차 중 어떤 자동차의 `hwy`(고속도로 연비)가 평균적으로 더 높은지 알아보아라 
+```{r}
+
+displ4 <- as.data.frame(mpg %>% filter(displ <= 4))
+displ5 <- as.data.frame(mpg %>% filter(displ <= 5))
+
+mean_hwy <- data.frame(data = c("displ4","displ5"),
+                         Mean = c(mean(displ4$hwy),mean(displ5$hwy)))
+mean_hwy
+```
+
+  - `displ`이 4 이하인 자동차가 `hwy`가 평균적으로 더 높다.
+  
+Q2. "audi"와 "toyota" 중 어느 `manufacturer`의 `cty`가 평균적으로 더 높은지 알아보기  
+```{r}
+mpg_audi <- as.data.frame(mpg %>% filter(manufacturer =="audi"))
+mpg_toyo <- as.data.frame(mpg %>% filter(manufacturer == "toyota"))
+
+mean_cty <- data.frame(data = c("mpg_audi","mpg_toyo"),
+                         Mean = c(mean(mpg_audi$cty),mean(mpg_toyo$cty)))
+mean_cty
+
+```
+
+  - toyota가 `cty`가 평균적으로 더 높다.
+
+Q3. "chevrolet", "ford", "honda" 자동차의 고속도로 연비 평균을 알아보려고 합니다. 이 회사들의 자동차를 추출한 뒤 `hwy` 전체 평균을 구하라  
+```{r}
+mpg3cars <- as.data.frame(mpg %>% filter(manufacturer %in% c("chevrolet", "ford", "honda")))
+
+mean(mpg3cars$hwy)
+```
+
+#### 06-3 혼자서해보기 
+Q1. 이 중 일부만 추출해서 분석에 활용하려고 합니다. `mpg` 데이터에서 `class`(자동차 종류), `cty`(도시 연비) 변수를 추출해 새로운 데이터를 만들고 출력하라.
+```{r}
+mpgcc <- as.data.frame(mpg %>% select("class","cty"))
+head(mpgcc)
+```
+
+Q2. 앞에서 추출한 데이터를 이용해서 `class`(자동차 종류)가 "suv"인 자동차와 "compact"인 자동차 중 어떤 자동차의 `cty`(도시 연비)가 더 높은지 확인하라 
+```{r}
+mpg_suv <- as.data.frame(mpg %>% filter(class == "suv"))
+mpg_compact <- as.data.frame(mpg %>% filter(class == "compact"))
+
+mean_cty2 <- data.frame(data = c("mpg_suv","mpg_compact"),
+                         Mean =c(mean(mpg_suv$cty),mean(mpg_compact$cty)))
+mean_cty2
+
+```
+
+#### 06-4 혼자서해보기 
+
+`mpg` 데이터를 이용해서 "audi"에서 생산한 자동차 중 `hwy`가 1~5위에 해당하는 자동차의 데이터를 출력하라.
+```{r}
+
+mpg %>% as.data.frame() %>% 
+  filter(manufacturer =="audi") %>%
+  arrange(desc(hwy)) %>%
+  head(5)
+
+```
+
