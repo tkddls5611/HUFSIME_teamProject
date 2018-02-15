@@ -1,0 +1,64 @@
+---
+title: "전처리"
+author: "LEE SANGIN"
+date: "2016년 11월 30일"
+output: html_document
+---
+### 0. 사용 library 및 데이터 불러오기
+```
+library(data.table)
+library(dplyr)
+library(tidyr)
+data <- read.csv("data <- data.table(read.csv("C:/Users/LG-PC/Desktop/DM/csv/영화data.csv",header=T))")
+```
+
+```{r include=FALSE, cache=FALSE}
+
+library(data.table)
+library(dplyr)
+library(tidyr)
+data <- data.table(read.csv("C:/Users/LG-PC/Desktop/DM/csv/영화data.csv",header=T))
+str(data)
+```
+
+
+```{r}
+str(data)
+base <- data[,c(2,20),with=F]
+base
+
+colnames(base) <- c("title","genre")
+base
+
+base$genre <- as.character(base$genre)
+
+
+temp <- strsplit(base$genre,"/")
+str(temp)
+temp[[1]]
+
+
+##함수 만들어야됌
+mat <- matrix(ncol = 8,nrow=3731)
+mat[2,2]
+
+for(i in 1:5043){
+  for(j in 1:8){
+    if(is.na(temp[[i]][j])==FALSE){
+      mat[i,j] <- temp[[i]][j]
+    }else{break}
+  }
+}
+head(mat)
+tail(mat)
+
+colnames(mat) <- c("장르1","장르2","장르3","장르4","장르5","장르6","장르7","장르8")
+
+data <- cbind(data,mat)
+data
+install.packages("xlsx")
+require(xlsx)
+
+write.xlsx(data, file = "C:/Users/LG-PC/Desktop/영화data장르나눔.xlsx")
+```
+

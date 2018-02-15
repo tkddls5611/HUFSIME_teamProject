@@ -1,0 +1,91 @@
+---
+title: "장르wide처리"
+author: "Call You Mining"
+date: "2016년 12월 5일"
+output: html_document
+---
+
+#### 0. 사용 library
+```
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(xlsx)
+```
+```{r include=FALSE, cache=FALSE}
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(xlsx)
+```
+
+#### 1. read data
+```{r}
+data <- data.table(read.csv("C:/Users/LG-PC/Desktop/최종전처리.csv",header=T))
+```
+
+#### 2. 사용할 데이터만 추출
+```{r}
+base <- data[,c(2,13,21),with=F]
+base
+```
+
+#### 3. 필드명 및 성격 변경
+```{r}
+colnames(base) <- c("title","year","genre")
+base$genre <- as.character(base$genre)
+str(base)
+```
+
+4.임시 변수(temp)에 장르를 '/'기준으로 잘라 저장
+```{r}
+temp <- strsplit(base$genre,"/")
+```
+
+#### 5. 기존데이터에 부착하기 위해 장르1~장르 8 필드생성
+```{r}
+mat <- matrix(ncol = 8,nrow=3731)
+for(i in 1:nrow(base)){
+  for(j in 1:8){
+    if(is.na(temp[[i]][j])==FALSE){
+      mat[i,j] <- temp[[i]][j]
+    }else{break}
+  }
+}
+head(mat)
+```
+
+#### 6. 필드명 생성 및 base에 데이터 부착
+```{r}
+colnames(mat) <- c("gen1","gen2","gen3","gen4","gen5","gen6","gen7","gen8")
+base <- cbind(base,mat)
+base <- base[,c(1,2,4:11),with=F]
+```
+
+#### 7. 데이터 melting
+```{r}
+melt <- gather(base, genre,value,-title,-year)
+melt <- data.table(melt)
+melt
+```
+
+#### 8. melting한 데이터에서 value값이 있는 데이터만 추출
+```{r}
+melt[,":="(onoff,1)]
+melt[is.na(value),":="(onoff,0)]
+melt <- melt[,c(1,2,4,5),with=F]
+melt <- melt[which(onoff==1)]
+```
+
+#### 9. data spread 및 빈칸을 0으로 치환
+```{r}
+final <- spread(melt,value,onoff)
+final[is.na(final)] <- 0
+final
+```
+
+#### 10. 데이터 xlsx파일 출력
+```
+write.xlsx(data, file = "C:/Users/LG-PC/Desktop/영화data장르wide.xlsx")
+```
+

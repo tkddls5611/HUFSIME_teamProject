@@ -1,0 +1,54 @@
+---
+title: "02.전처리2"
+author: "Call You Mining"
+date: "2016년 12월 5일"
+output: html_document
+---
+### 목표 : BEM흥행여부,점수흥행여부에 따른 최종흥행여부 판ㄷ
+
+#### 0. 사용 library
+```
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(xlsx)
+```
+```{r include=FALSE, cache=FALSE}
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(xlsx)
+```
+
+#### 1. read data
+```{r}
+data <- data.table(read.csv("C:/Users/LG-PC/Desktop/영화전처리2.csv",header=T))
+```
+
+#### 2. 사용할 데이터만 추출
+```{r}
+colnames(data)
+base <- data[,c(2,30,32),with=F]
+base
+```
+
+#### 3. 최종흥행여부 field 생성 및 판단
+```{r}
+base[,":="(최종흥행여부,0)]
+base[BEP흥행여부==1&점수흥행여부==1,":="(최종흥행여부,1)]
+base
+```
+
+#### 4. 데이터 부착
+```{r}
+#기존 데이터에 부착할 데이터만 추출
+finally <- base[,4,with=F]
+
+#데이터 부착
+data <- cbind(data,finally)
+```
+
+#### 5. 데이터 xlsx파일 출력
+```
+write.xlsx(data, file = "C:/Users/LG-PC/Desktop/전처리최종.xlsx")
+```

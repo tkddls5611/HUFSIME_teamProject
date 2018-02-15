@@ -1,0 +1,47 @@
+---
+title: "전처리2"
+author: "LEE SANGIN"
+date: "2016년 12월 1일"
+output: html_document
+---
+```{r}
+library(data.table)
+library(tidyr)
+library(dplyr)
+```
+
+```{r}
+data <- read.csv("C:/Users/LG-PC/Desktop/DM/csv/영화data장르나눔.csv",header=T)
+data <- data.table(data)
+data
+```
+
+```{r}
+ncol(data)
+base <- data[,c(3,14,30:37),with=F]
+base
+colnames(base) <- c("title","year", "gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8")
+
+base2 <- unique(base[, colnames(base),with=F])
+base2
+
+
+melt <- gather(base2, gen,value,-title,-year)
+melt <- data.table(melt)
+
+melt[,":="(onoff,1)]
+melt[value=="#N/A",":="(onoff,0)]
+melt <- melt[,c(1,2,4,5),with=F]
+melt <- melt[which(onoff==1)]
+final <- spread(melt,value,onoff)
+final
+final[is.na(final)] <- 0
+final
+
+install.packages("xlsx")
+require(xlsx)
+
+write.xlsx(final, file = "C:/Users/LG-PC/Desktop/영화data장르widely.xlsx")
+```
+
+

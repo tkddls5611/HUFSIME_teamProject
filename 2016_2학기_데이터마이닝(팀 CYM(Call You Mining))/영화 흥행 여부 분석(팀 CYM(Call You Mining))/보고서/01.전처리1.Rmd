@@ -1,0 +1,91 @@
+---
+title: "01.전처리1"
+author: "Call You Mining"
+date: "2016년 12월 5일"
+output: html_document
+---
+### 목표 : 영화 '개봉년도'별 평균 도출 및 흥행여부판단
+
+#### 0. 사용 library
+```
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(xlsx)
+```
+```{r include=FALSE, cache=FALSE}
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(xlsx)
+```
+
+#### 1. read data
+```{r}
+data <- data.table(read.csv("C:/Users/LG-PC/Desktop/DM/csv/영화전처리.csv",header=T))
+```
+
+#### 2. 사용할 데이터만 추출
+```{r}
+base <- data[,c(1,12,15),with=F]
+base
+```
+
+#### 3. 영화 '개봉년도'에 따른 평균 도출
+```{r}
+# '개봉년도'에 따른 평균을 yearmean에 저장(평균 소수 둘째자리까지 표시)
+yearmean <- data.table(base %>%
+  group_by(개봉년도) %>%
+  summarise(meanyr= round(mean(imdb.점수),2)))
+
+colnames(yearmean) <- c("year","meanyr")
+head(yearmean)
+```
+
+#### 4. 기존 data에 해당년도의 평균 field 추가 (meanyr)
+```{r}
+#meanyr 필드 형성 , 필드명을 영어명으로 전환
+base[,":="(meanyr,NA)]
+colnames(base) <- c("title","year","imdb.score","meanyr")
+
+yearmean<- as.matrix(yearmean)
+base <- as.matrix(base)
+for(i in 1:nrow(base)){
+  for(j in 1:nrow(yearmean)){
+    if(base[i,2] ==yearmean[j,1]){
+      base[i,4] <- yearmean[j,2]
+      break
+    }
+  }
+}
+base <- data.table(base)
+base
+```
+
+#### 5. 점수흥행여부 field 생성 및 판단
+```{r}
+base[,":="(scoresuccess,0)]
+
+#imdb.score > meanyr 일 경우 흥행했다고 판단
+base[imdb.score>meanyr,":="(scoresuccess,1)]
+base
+```
+
+#### 6. 데이터 부착
+```{r}
+#기존 데이터에 부착할 데이터만 추출
+finally <- base[,4:5,with=F]
+
+#필드 명 변경 
+colnames(finally) <- c("imdb.score평균(년도별)","점수흥행여부")
+
+#데이터 부착
+data <- cbind(data,finally)
+```
+
+#### 7. 데이터 xlsx파일 출력
+```
+write.xlsx(data, file = "C:/Users/LG-PC/Desktop/영화전처리2.xlsx")
+```
+
+

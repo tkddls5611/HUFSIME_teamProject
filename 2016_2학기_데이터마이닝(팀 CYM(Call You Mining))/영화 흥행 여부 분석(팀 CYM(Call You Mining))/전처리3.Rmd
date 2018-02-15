@@ -1,0 +1,83 @@
+---
+title: "전처리3"
+author: "LEE SANGIN"
+date: "2016년 12월 1일"
+output: html_document
+---
+
+```{r}
+library(data.table)
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+
+data <- data.table(read.csv("C:/Users/LG-PC/Desktop/DM/csv/영화전처리1.csv",header =T))
+data
+str(data)
+```
+
+```{r}
+colnames(data)
+data2 <- unique(data[, colnames(data),with=F])
+data2
+```
+
+```{r}
+colnames(data2)
+base <- data2[,c(1,12,15,29),with=F]
+base
+```
+
+개봉년도에 따른 imdb 점수 평균
+
+```{r}
+
+star <- base %>%
+  group_by(개봉년도) %>%
+  summarise(meanyr= round(mean(imdb.점수),2))
+
+star <- data.table(star)
+colnames(star) <- c("year","meanyr")
+head(star)
+```
+
+
+```{r}
+base[,":="(meanyr,NA)]
+colnames(base) <- c("title","year","imdb.score","sunsu","meanyr")
+
+star<- as.matrix(star)
+base <- as.matrix(base)
+
+head(star)
+for(i in 1:3798){
+  for(j in 1:74){
+    if(base[i,2] ==star[j,1]){
+      base[i,5] <- star[j,2]
+      break
+    }
+  }
+}
+base <- data.table(base)
+```
+
+```{r}
+base[,":="(goodscore,0)]
+base[imdb.score>meanyr,":="(goodscore,1)]
+
+base[,":="(total,0)]
+base[sunsu==1&goodscore==1,":="(total,1)]
+
+finally <- base[,6:7,with=F]
+colnames(finally) <- c("점수흥행여부","최종흥행여부")
+data2 <- cbind(data2,finally)
+data2
+
+
+write.xlsx(data2, file = "C:/Users/LG-PC/Desktop/영화최종흥행여부.xlsx")
+
+```
+
+

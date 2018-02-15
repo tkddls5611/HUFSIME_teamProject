@@ -1,0 +1,87 @@
+---
+title: "전처리4"
+author: "LEE SANGIN"
+date: "2016년 12월 1일"
+output: html_document
+---
+
+```{r}
+library(data.table)
+library(dplyr)
+library(tidyr)
+require(xlsx)
+```
+
+```{r}
+#data <- read.csv("C:/Users/LG-PC/Desktop/DM/영화최종흥행여부_2.csv",header=T)
+data <- read.csv("C:/Users/LG-PC/Documents/카카오톡 받은 파일/영화최종흥행여부_2(수정본).csv",header=T)
+data <- data.table(data)
+str(data)
+
+```
+
+```{r}
+colnames(data)
+base <- data[,c(2,13,21,32),with=F]
+base
+colnames(base) <- c("title","year", "genre","goodmovie")
+base$genre <- as.character(base$genre)
+
+```
+
+```{r}
+
+temp <- strsplit(base$genre,"/")
+str(temp)
+temp[[1]]
+
+```
+
+```{r}
+
+mat <- matrix(ncol = 8,nrow=NROW(base))
+mat[2,2]
+
+head(mat)
+
+for(i in 1:NROW(base)){
+  for(j in 1:8){
+    if(is.na(temp[[i]][j])==FALSE){
+      mat[i,j] <- temp[[i]][j]
+    }else{break}
+  }
+}
+
+head(mat)
+tail(mat)
+
+colnames(mat) <- c("장르1","장르2","장르3","장르4","장르5","장르6","장르7","장르8")
+base <- cbind(base,mat)
+firstfinal <- base
+firstfinal
+```
+
+```{r}
+base<- base[,c(1,2,4:12),with=F]
+base
+
+colnames(base) <- c("title","year", "goodmovie","gen1", "gen2", "gen3", "gen4", "gen5", "gen6", "gen7", "gen8")
+
+base2 <- unique(base[, colnames(base),with=F])
+base2
+
+melt <- gather(base2, genre,value,-title,-year,-goodmovie)
+melt <- data.table(melt)
+melt
+
+melt[,":="(onoff,1)]
+melt[is.na(value),":="(onoff,0)]
+melt <- melt[,c(1,2,3,5,6),with=F]
+melt <- melt[which(onoff==1)]
+final <- spread(melt,value,onoff)
+final
+final[is.na(final)] <- 0
+final
+
+```
+
