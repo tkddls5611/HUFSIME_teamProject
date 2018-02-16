@@ -1,0 +1,132 @@
+---
+title: "pca.withBet"
+author: "이상인"
+date: "2017년 5월 1일"
+output: html_document
+---
+
+####**군간군내**
+
+  * 함수 명: pca.withBet(data, LSL = NA,USL = NA,Target = NA, whatGroup =1, group1 = 1, group2 = c(),
+                        f.na.rm = TRUE, withinSd =1, betSd = 1,  
+                        mainTitle = "PCA within/Between dist. graph",subTitle = "My PCA graph")
+
+
+  * Variables:  
+    -	data : 사용 데이터 셋$variable(vector)
+    -	LSL: 하한, (default = NA)
+    -	USL: 상한 (default = NA)
+    -	target: 목표 값 (default = NA)
+    - whatGroup : 표본 크기 구하는 방법 (1: 상수, 2: 데이터셋, default = 1)
+    - N1: 표본 갯수(whatGroup ==1, default =1)
+    - N2: 사용될 데이터 셋 (whatGroup ==2)
+    - f.na.rm: TRUE시 데이터셋의 NA값 제거 후 분석(default = TRUE)
+    - withinSD: 군내 표준편차 추정 방식(default =1)  
+                    (1: R_bar, 2: S_bar, 3: 합동표준편차 방식)  
+    - betSd: 군간 표준편차 추정 방식(default =1)  
+                    (1: 이동범위의 평균 방식, 2: 이동범위의 중위수 방식)
+    -	mainTitle: 대제목 (default = “PCA within/Between dist. graph”)
+    -	subTitle: 소제목 (default = “My PCA project”)
+  
+  * 기타 사용 package:
+    -	qcc: 
+        1. sd.R() – R chart에서 요구하는 표준편차를 구함.
+        2. sd.S() – S chart에서 요구하는 표준편차를 구함.  
+
+***
+
+#####**함수 작동원리**  
+  
+1. whatGroup 유형에 따라 부분군 갯수를 정의  
+
+```
+  if(whatGroup ==1){
+    group <- group1
+  }else{
+    group <- nlevels(as.factor(group2))
+  }
+```
+2. 변수정의(meanST = 공정평균, N=전체 데이터 갯수, n = 군내 표본갯수)  
+
+```
+  meanST <- mean(data, na.rm = f.na.rm)
+  N <- length(data[!is.na(data)])
+  n <- N / group
+```
+3. dataframe, matrix, data.table 형태의 데이터를 vector로 변환
+
+```
+  data <- as.vector(data)
+```
+
+4. 데이터를 군별로 쪼개어 군들의 평균, 범위, 표준편차의 평균을 구함.  
+
+```
+  split <- splitby(data = data, group = group) #데이터 군별로 쪼개기
+  rowSplit <- nrow(split)
+  colSplit <- ncol(split)
+
+  split$mean <- apply(split, 1,mean) #군별 평균, 이동범위, 범위, 표준편차
+  split$MR <- c(NA,abs(split[2:rowSplit, colSplit+1] - split[1:(rowSplit-1), colSplit+1]))
+  split$range <- apply(split[1:colSplit],1,rangeMinMax)
+  split$sd <- apply(split[1:colSplit] ,1,sd)
+  
+  sr <- list(mean = mean(split[,colSplit+1]), #각 값들의 평균 구하기
+             MR = sum(split[,colSplit+2],na.rm = TRUE)/(group-1),
+             range = mean(split[,colSplit+3]),
+             sd = mean(split[,colSplit+4]))
+```
+5. 불편화상수 표를 이용하여 전체 표준편차(sdOver) 추정.  
+
+```
+sdOver <- sdOverAll(split,rowSplit = rowSplit, colSplit = colSplit,
+                      N = N, mean =sr$mean, na.rm = f.na.rm, c4 = uc[N,1]) 
+```
+6. 사용자가 지정한 방식에 따라 군내 표준편차(sdW) 추정.(qcc package의 sd.R(), sd.S() 사용)  
+
+```
+  if(withinSd1 ==1){                        # R chart 방식
+    sdW <- sd.R(data = split[1:colSplit])
+  }else if(withinSd1 ==2){                  # S chart 방식
+    sdW <- sd.S(data = split[1:colSplit])
+  }else{                                    # 합동표준편차방식
+    sp <- getSp(split = split, rowSplit= rowSplit, colSplit = colSplit, N = N, group = group)
+    tempc4 <- group*(n-1)+1
+    sdW <- sp/uc[tempc4,1] # uc>c4 사용
+  }
+```
+7. 사용자가 지정한 방식에 따라 군간 표준편차 추정(sdB)  
+
+```
+  sdX <- NA
+  if(betSd ==1){                            #이동범위의 평균 방식
+    sdX <- sr$MR/uc[2,3] # uc>d2
+  }else{                                    #이동범위의 중위수 방식
+    sdX <- median(split$MR,na.rm = TRUE)/uc[2,5] # uc>d4
+  }
+
+  sdB <- sqrt((sdX^2)-(sdW^2/n)) # sdB = 군간 표준편차
+
+
+```
+8. 총 표준편차(sdTotal) 추정.   
+
+```
+   sdTotal <- sqrt(sdW^2 + sdB^2)
+```
+
+9. 앞에서 구한 값들을 이용하여 cp값(cp, cpl, cpu, cpk), pp값(pp, ppl, ppu, ppk),  
+   관측부적합품률(하측, 상측, 총)을 구함. list 형태 반환
+   
+```
+  cplist <- ppclist(data = data,LSL = LSL, USL = USL, meanST = meanST, sdTotal = sdTotal) #cp, cpu, cpl, cpk
+  pplist <- tpplist(data = data,LSL = LSL, USL = USL, meanST = meanST, sdOver = sdOver) #pp, ppu, ppl, ppk
+  obPPMlist <- obPerform(data = data, LSL = LSL, USL = USL, N = N) # 관측 성능 PPM
+  overPPMlist <- expPerform_overall(data = data, LSL = LSL, USL = USL, mean = meanST, sdOver = sdOver) # 전체 기대 성능 PPM
+  inPPMlist <- expPerform_ingroup(data = data, LSL = LSL, USL = USL, mean = meanST,sdIngroup = sdTotal) # 군내 기대 성능 PPM
+
+
+```
+10. 시각화  
+
+

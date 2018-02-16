@@ -1,0 +1,63 @@
+---
+title: "cpAndPp"
+author: "LEE SANGIN"
+date: "2017년 5월 1일"
+output: html_document
+---
+
+####**cp**
+
+  * 함수 명: ppclist(data, LSL = NA, USL = NA, meanST = 0, sdTotal =1)
+
+  * Variables:  
+    -	data : 사용 데이터 셋$variable(vector)
+    -	LSL: 하한 (default = NA)
+    -	USL: 상한 (default = NA)
+    - meanST: 평균 (default = 0)
+    - sdTotal: 표준편차(default = 1)
+
+#####**함수 작동원리**  
+  
+1. cp, cpu, cpl, cpk를 구하는 공식에 따라 함수를 구현.   
+
+```
+  cp <- (USL - LSL) / (6 * sdTotal)
+  cpu <- (USL - meanST) / (3 * sdTotal)
+  cpl <- (meanST - LSL) / (3 * sdTotal)
+  cpk <- min(cpl,cpu)
+```
+2. 구한값을 list로 변환 후 결과 출력.  
+
+```
+  result <- list(cp = cp, cpu = cpu, cpl = cpl, cpk = cpk)
+```
+***
+
+####**pp**
+
+  * 함수 명: tpplist(data, LSL = NA, USL = NA, meanST = 0, sdOver = 1)
+
+  * Variables:  
+    -	data : 사용 데이터 셋$variable(vector)
+    -	LSL: 하한 (default = NA)
+    -	USL: 상한 (default = NA)
+    - meanST: 평균 (default = 0)
+    - sdOver: 전체 표준편차(default = 1)  
+
+#####**함수 작동원리**  
+  
+1. pp, ppu, ppl, ppk를 구하는 공식에 따라 함수를 구현.   
+
+```
+  pp <- (USL - LSL) / (6 * sdOver)
+  ppu <- (USL - meanST) / (3 * sdOver)
+  ppl <- (meanST - LSL) / (3 * sdOver)
+  ppk <- min(ppl,ppu)
+```
+2. 구한값을 list로 변환 후 결과 출력.  
+
+```
+  result <- list(pp = pp, ppu = ppu, ppl = ppl, ppk = ppk)
+```
+
+

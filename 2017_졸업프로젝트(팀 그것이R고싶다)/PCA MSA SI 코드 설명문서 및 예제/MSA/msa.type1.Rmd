@@ -1,0 +1,155 @@
+---
+title: "msa.type1"
+author: "LEE SANGIN"
+date: "2017년 5월 8일"
+output: html_document
+---
+
+#### **Type1 study(유형1 Gage 연구)**
+
+  * 함수 명: msa.type1(data, tol, LSL, USL, resol, target, alpha = 0.05  
+                           ,mainTitle = "Measurment System Analysis Graph"  
+                           ,subTitle = "My MSA project")
+
+
+  * Variables:
+    -	data : 사용 데이터 셋$variable(vector)
+    - tol : 공차(상한-하한)
+    -	LSL: 하한
+    -	USL: 상한 
+    - resol : 분해능, 해(resolution)
+    -	target: 목표 값
+    - alpha : 유의수준 alpha(default = 0.5)
+    -	mainTitle: 대제목 (default = “Measurment System Analysis Graph”)
+    -	subTitle: 소제목 (default = “My MSA project”)
+
+***
+
+##### **함수 작동원리**
+
+  1. resol(분해능)이 없을 경우 가장 최소 단위 수를 resol로 설정합니다.  
+     이때 가장 작은 분해능을 찾는 decimalplaces라는 function을 정의함.  
+
+```
+  # get lowest decimal place in data
+  decimalplaces <- function(x) {
+    if ((x %% 1) != 0) {
+      nchar(strsplit(sub('0+$', '', as.character(x)), ".", fixed=TRUE)[[1]][[2]])
+    } else {
+      return(0)
+    }
+  }
+  if(missing(resol)){
+
+    low_deci <- decimalplaces(data[1])
+    for(i in 2: length(data)){
+      temp_deci <- decimalplaces(data[i])
+      if(low_deci < temp_deci){
+        low_deci <- temp_deci
+      }
+    } # get lowest decimal place in data END
+    resol <- 10 ^(-1*(low_deci))
+  }else{
+    low_deci <- decimalplaces(resol)
+  }
+```
+  2. LSL(하한), USL(상한) 중 하나만 있고 tol도 없을 때 (=공차(LSL-USL)을 만들 수 없을 때)
+
+```
+
+passQ <- TRUE # 합격: TRUE, 불합격: FALSE
+
+#USL이 있을 경우( 모든 측정 데이터가 USL-4*s 이하면 합격(passQ = TRUE))
+    if(!missing(USL)){
+      standard <- USL - 4*sdx
+      for(i in 1:length(data)){
+        if(data[i] > standard) passQ <- FALSE
+      }
+    }
+  #LSL이 있을 경우( 모든 측정 데이터가 LSL+4*s 이상이면 합격(passQ = TRUE))
+    if(!missing(LSL)){
+      standard <- LSL + 4*sdx
+      for(i in 1:length(data)){
+        if(data[i] < standard) passQ <- FALSE
+      }
+    }
+
+
+```
+  2-1. passQ가 TRUE면 type1 study에 의한 데이터 합격 
+
+```
+  if(passQ){
+      print("pass the type1 test")
+    }else{
+      print("fail the type1 test")
+    }
+
+```
+
+  2-2. t test를 진행. |testT| < tt값이면 합격 (testT: 검정통계량, tt: 기각역, pv: p-value)
+
+```
+    testT <- t.test(data, alternative = "two.sided",mu=target,conf.level = 1-alpha)[["statistic"]]
+    tt <- qt(p = 1-alpha/2, df = length(data)-1)
+    pv <- t.test(data, alternative = "two.sided",mu=target,conf.level = 1-alpha)[["p.value"]]
+
+    if(abs(testT) < tt){
+      print(paste("passed the bias test : testT = |",testT,"| < ",tt," = t(",length(data)-1,")  (",1-alpha/2,"%)",sep = ""))
+    }else{
+      print(paste("failed the bias test : testT = |",testT,"| >= ",tt," = t(",length(data)-1,") (",1-alpha/2,"%)",sep = ""))
+    }
+```
+  3. LSL, USL 둘다 있거나 tol이 있을 때(=공차가 있을 때)
+
+```
+#tol값이 없을 경우 tol = USL-LSL으로 정의한다.
+  if(missing(tol)){
+    tempdeci <- max(decimalplaces(USL),decimalplaces(LSL))
+    tol <- round(USL - LSL,digits=tempdeci)
+  }
+```
+  3-1. GM, Bosch: 정의에 따라 cg, cgk값 계산  
+                  cg, cgk가 1.33이상이면 합격  
+
+```
+  #bias
+  bias <- round(meanx - target,digits = low_deci)
+
+  #cg, cgk (반복성, 편의)
+  cg <- round((0.2 * tol)/(6 * sdx),digits = low_deci)
+  cgk <- round((0.1 * tol - abs(bias))/(3 * sdx),digits =low_deci)
+
+  #judgment
+  if(cg >= 1.33 & cgk >= 1.33){
+    print(paste("passed the test : cg = ",cg," , cgk = ",cgk,sep = ""))
+  }else{
+    print(paste("failed the test : cg = ",cg," , cgk = " ,cgk,sep = ""))
+  }
+```
+  3-2. AIAG process: %EV(percentEV)에 의한 repeatability test, 가설검정에 의한 bias test
+
+```
+ #repeatability test
+  percentEV <- round((6 * sdx) / tol * 100,digits = 3)
+  if(percentEV <= 30){
+    print(paste("passed the repeatability test : ",percentEV,sep = ""))
+  }else{
+    print(paste("failed the repeatability test : ",percentEV,sep = ""))
+  }
+  #bias test
+  testT <- t.test(data, alternative = "two.sided",mu=target,conf.level = 1-alpha)[["statistic"]]
+  tt <- qt(p = 1-alpha/2, df = length(data)-1)
+  pv <- t.test(data, alternative = "two.sided",mu=target,conf.level = 1-alpha)[["p.value"]]
+
+  if(abs(testT) < tt){
+    print(paste("passed the bias test : testT = |",testT,"| < ",tt," = t(",length(data)-1,") (",1-alpha/2,"%)",sep = ""))
+  }else{
+    print(paste("failed the bias test : testT = |",testT,"| >= ",tt," = t(",length(data)-1,") (",1-alpha/2,"%)",sep = ""))
+  }
+
+```
+
+  4. 시각화
+
+
