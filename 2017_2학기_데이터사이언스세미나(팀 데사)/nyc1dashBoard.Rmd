@@ -1,0 +1,339 @@
+---
+title: "Nycflights-DeSa"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+library(flexdashboard)
+library(highcharter)
+library(nycflights13)
+library(dplyr)
+library(shiny)
+library(plotly)
+library(ggplot2)
+library(leaflet)
+state <- read.csv("us-airports.csv",header = T)
+
+flights <- as.data.frame(flights)
+weather <- as.data.frame(weather)
+airports <- as.data.frame(airports)
+planes <- as.data.frame(planes)
+attr(weather$time_hour,"tzone") <- "UTC"
+
+#flights와 weather결합 (fw = flights + weather)
+
+fw <- left_join(flights, weather, by = c("origin", "time_hour"))
+
+#필요없는 변수 제거
+fw <- subset(fw, select = -c(year.y,month.y,day.y,hour.y,pressure))
+#### NA 처리는 우선 제거하는걸로(dep_delay) > 이거 더 나은 처리방법 필요!!
+fw <- fw %>%filter(!is.na(dep_delay))
+#이름 바꾸고
+names(fw)[c(1,2,3,17)] <- c("year","month","day","hour")
+# origin factor
+fw$origin <- as.factor(fw$origin)
+# 12-2 : winther, 3-5 : spring, 6-8 : summer, 9-11 : fall
+fw <- fw %>% mutate(season = ifelse(month == 12 | month ==1 | month ==2,"winter",
+                              ifelse(month==3 | month==4 | month ==5,"spring",
+                                     ifelse(month==6 | month ==7 |
+                                              month==8,"summer",
+                                            ifelse(month==9 | month ==10 | 
+                                                     month ==11,"fall",NA)))))
+# season factor화
+fw$season <- as.factor(fw$season)
+
+# hour 5-9 : morning , 10-14 : afternoon , 15-18 : late afternoon , 
+# 19-22 : evening&night :한계
+fw <- fw %>% mutate(partOfDay = ifelse(hour ==5 | hour ==6 | hour ==7 | hour ==8 | hour ==9,"Morning",
+                                       ifelse(hour ==10 | hour ==11 | hour ==12 | hour ==13 | hour ==14,"Noon",
+                                              ifelse(hour ==15 | hour ==16 | hour ==17 | hour ==18,"Late Afternoon","Night"))))
+fw$partOfDay <- as.factor(fw$partOfDay)
+
+# planes data join하기
+beforePlanesjoin <- planes %>% select(tailnum,type,manufacturer,
+                                      model,engines,seats)
+fw <- left_join(fw, beforePlanesjoin,by = "tailnum")
+
+fw <- fw %>% mutate(planeSize = ifelse(seats <= 30, "small",
+                                       ifelse(seats <= 260, "medium","large")))
+
+# airports data join 하기
+airports2 <- left_join(airports, state, by = "faa")
+airports2 <- airports2 %>% select(-name.y, -tzone, -dst,-tz,-alt,-name.x,
+                                  -lat,-lon) 
+
+destination <- levels(as.factor(fw$dest))
+airports2 <- airports2 %>% filter(faa %in% destination)
+colnames(airports2)[1] <- "dest"
+
+fw <- left_join(fw, airports2, by = "dest")
+fw <- fw %>% filter(!is.na(state))
+fw <- fw %>% mutate(regions = ifelse(state %in% c("AK","WA","OR","ID","MT","WY","CA","NV","AZ","UT","CO","NM","HI"), "west",
+                                     ifelse(state %in% c("ND","SD","NE","KS","MN","IA","MO","WI","IL","IN","MI","OH"),"central",
+                                            ifelse(state %in% c("PA","NY","NJ","CT","RI","MA","VT","NH","ME"),"northeast","south"))))
+
+
+#강우량
+fw <- fw %>% mutate(stdPrecip = ifelse(precip ==0,NA,
+                                       ifelse(precip <= 0.10,"0.01~0.1",
+                                              ifelse(precip <= 0.20,"0.11~0.20",
+                                                     ifelse(precip <= 0.30,"0.21~0.30",
+                                                            ifelse(precip <= 0.40,"0.31~0.40","Over 0.40"))))))
+#가시거리
+fw <- fw %>% mutate(stdVisib = ifelse(visib ==0,"0",
+                                       ifelse(visib <= 1,"0~1",
+                                              ifelse(visib <= 2,"1~2",
+                                                     ifelse(visib <= 3,"2~3",
+                                                            ifelse(visib <= 5,"3~5",
+                                                                   ifelse(visib <= 8,"5~8",NA)))))))
+
+# airline data join
+colnames(airlines)[2] <- "airlineName"
+fw <- left_join(fw, airlines,by = "carrier")
+fw$airlineName <- as.factor(fw$airlineName)
+
+# manufacturer 중 (AIRBUS, AIRBUS INDUSTRIE) (CANADAIR, CANADAIR LTD)
+# (MCDONNELL DOUGLAS ~ 3개) 같은 제조사
+fw[which(fw$manufacturer=="AIRBUS INDUSTRIE"),]$manufacturer <- "AIRBUS"
+fw[which(fw$manufacturer=="CANADAIR LTD"),]$manufacturer <- "CANADAIR"
+fw[which(fw$manufacturer=="MCDONNELL DOUGLAS AIRCRAFT CO"),]$manufacturer <- "MCDONNELL DOUGLAS"
+fw[which(fw$manufacturer=="MCDONNELL DOUGLAS CORPORATION"),]$manufacturer <- "MCDONNELL DOUGLAS"
+
+##### Delayed?
+fw <- fw %>% mutate(checkDelay = ifelse(dep_delay >0, "delayed","ontime"))
+
+```
+
+Home
+==============================
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput("originVar", label = "Select Origins",
+            levels(as.factor(fw$origin)))
+selectInput("seasonVar", label = "Select Seasons",
+            levels(as.factor(fw$season)))
+
+```
+
+```{r fig.width = 2.4, fig.height = 2}
+dataLocation <- airports %>%
+  filter(faa == "JFK" | faa == "LGA" | faa == "EWR") %>%
+  select(c(faa,name, lat,lon))
+
+leaflet(data = dataLocation) %>%
+  addTiles() %>%
+  addMarkers(lng=~lon, lat=~lat, label=~name)
+
+```
+
+
+Column
+-----------------------------------------------------------------------
+
+### chartA
+
+```{r}
+
+renderPlotly({
+
+dataVisib <- fw %>% 
+  filter(origin==input$originVar & season ==input$seasonVar)
+  
+d2 <- dataVisib %>% 
+  group_by(partOfDay,checkDelay) %>% 
+  summarise(count=n()) %>% 
+  mutate(perc=count/sum(count)*100)
+
+p <- ggplot(d2, aes(x = partOfDay, 
+               y = perc, 
+               fill = checkDelay)) +
+  geom_bar(stat="identity", width = 0.7) +
+  labs(x = "Part of Day", y = "percent", fill = "checkDelay") +
+  theme_minimal(base_size = 14) +scale_colour_continuous(guide = FALSE)
+
+ggplotly(p)
+})
+```
+
+### chartB
+
+```{r}
+renderHighchart({
+  dataHeat <- fw %>%
+    filter(origin==input$originVar & season ==input$seasonVar &
+             !is.na(stdPrecip) & !is.na(stdVisib) & checkDelay =="delayed")
+
+  dataHeating <- dataHeat %>% group_by(stdPrecip, stdVisib) %>%
+    summarize(delayed = n())
+  hchart(dataHeating, "heatmap",
+         hcaes(x = stdPrecip, y = stdVisib, value = delayed))
+
+})
+
+```
+
+Columns { data-width=350}
+-----------------------------------------------------------------------
+
+### Where does planes go to?
+```{r}
+renderHighchart({
+
+whichRegions <- fw %>% filter(origin==input$originVar & 
+                             season ==input$seasonVar & 
+                             !is.na(regions))
+  
+d <- whichRegions %>% 
+  group_by(regions) %>% 
+  summarise(count=n()) %>% 
+  mutate(perc=count/sum(count)*100)
+
+hchart(d, "pie", hcaes(x = regions, y = perc))
+})
+```
+
+### Plane Size
+
+```{r}
+renderHighchart({
+
+dataplane <- fw %>% filter(origin==input$originVar & 
+                             season ==input$seasonVar & 
+                             !is.na(planeSize))
+  
+d1 <- dataplane %>% 
+  group_by(planeSize) %>% 
+  summarise(count=n()) %>% 
+  mutate(perc=count/sum(count)*100)
+
+hchart(d1, "pie", hcaes(x = planeSize, y = perc))
+})
+```
+
+
+### Top Airlines (Bar chart)
+
+```{r}
+
+```
+
+Carrier
+==============================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+  selectInput("carrierVar", label = "Select Company",
+              levels(as.factor(fw$airlineName)),
+              selected = "Southwest Airlines Co.")
+  selectInput("originVar2", label = "Select Origins",
+              levels(as.factor(fw$origin)),selected = "LGA")
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Total flights
+
+```{r}
+renderValueBox({
+totalData <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2)
+
+total <- nrow(totalData)
+valueBox(total, icon = "ion-android-plane")
+})
+
+# fw %>% filter(airlineName == "ExpressJet Airlines Inc." &
+#                            origin == "JFK")
+```
+
+### Average Rating 1
+
+```{r}
+
+print("gage")
+
+# renderHighchart({
+# 
+# whichRegions <- fw %>% filter(airlineName == input$carrierVar &
+#                               origin == input$originVar2 & 
+#                              !is.na(regions))
+#   
+# d <- whichRegions %>% 
+#   group_by(regions) %>% 
+#   summarise(count=n()) %>% 
+#   mutate(perc=count/sum(count)*100)
+# 
+# hchart(d, "pie", hcaes(x = regions, y = perc))
+# })
+```
+
+### Average Air Time
+
+```{r}
+renderValueBox({
+totalData <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2)
+
+airTime <- mean(totalData$arr_time, na.rm = T)
+valueBox(round(airTime,digits = 2), icon = "ion-speedometer")
+})
+
+```
+
+### Average Rating 2
+
+```{r}
+
+print("pie chart")
+# rating <- computeAverageRating()
+# gauge(rating, min = 0, max = 100, gaugeSectors(
+#   success = c(0,20), danger = c(21, 100)
+# ))
+```
+
+Row { data-height=600}
+-----------------------------------------------------------------------
+
+### Manufacturer 
+
+```{r}
+  
+renderHighchart({
+
+  manufacturerdata <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2 & !is.na(manufacturer))
+  
+  if(nrow(manufacturerdata) !=0){
+  countManufacturer <- count(manufacturerdata,
+                             manufacturer,checkDelay) %>% as.data.frame()
+
+  hchart(countManufacturer, "bar",
+         hcaes(x = manufacturer, y = n,group = checkDelay))
+}else{print("hello world")}
+
+})
+
+```
+
+### Average Rating 
+
+```{r}
+
+```
+
+
+
+
+
+
+
+

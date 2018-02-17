@@ -1,0 +1,375 @@
+---
+title: "Nycflights-DeSa"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+
+library(flexdashboard)
+library(highcharter)
+library(nycflights13)
+library(dplyr)
+library(shiny)
+library(plotly)
+library(ggplot2)
+library(leaflet)
+state <- read.csv("us-airports.csv",header = T)
+
+flights <- as.data.frame(flights)
+weather <- as.data.frame(weather)
+airports <- as.data.frame(airports)
+planes <- as.data.frame(planes)
+attr(weather$time_hour,"tzone") <- "UTC"
+
+
+fw <- left_join(flights, weather, by = c("origin", "time_hour"))
+
+fw <- subset(fw, select = -c(year.y,month.y,day.y,hour.y,pressure))
+fw <- fw %>%filter(!is.na(dep_delay))
+names(fw)[c(1,2,3,17)] <- c("year","month","day","hour")
+# origin factor
+fw$origin <- as.factor(fw$origin)
+# 12-2 : winther, 3-5 : spring, 6-8 : summer, 9-11 : fall
+fw <- fw %>% mutate(season = ifelse(month == 12 | month ==1 | month ==2,"winter",
+                              ifelse(month==3 | month==4 | month ==5,"spring",
+                                     ifelse(month==6 | month ==7 |
+                                              month==8,"summer",
+                                            ifelse(month==9 | month ==10 | 
+                                                     month ==11,"fall",NA)))))
+# season factor화
+fw$season <- as.factor(fw$season)
+
+# hour 5-9 : morning , 10-14 : afternoon , 15-18 : late afternoon , 
+# 19-22 : evening&night
+fw <- fw %>% mutate(partOfDay = ifelse(hour ==5 | hour ==6 | hour ==7 | hour ==8 | hour ==9,"Morning",
+                                       ifelse(hour ==10 | hour ==11 | hour ==12 | hour ==13 | hour ==14,"Noon",
+                                              ifelse(hour ==15 | hour ==16 | hour ==17 | hour ==18,"Late Afternoon","Night"))))
+fw$partOfDay <- as.factor(fw$partOfDay)
+
+# planes data join
+beforePlanesjoin <- planes %>% select(tailnum,type,manufacturer,
+                                      model,engines,seats)
+fw <- left_join(fw, beforePlanesjoin,by = "tailnum")
+
+fw <- fw %>% mutate(planeSize = ifelse(seats <= 30, "small",
+                                       ifelse(seats <= 260, "medium","large")))
+
+# airports data join
+airports2 <- left_join(airports, state, by = "faa")
+airports2 <- airports2 %>% select(-name.y, -tzone, -dst,-tz,-alt,-name.x,
+                                  -lat,-lon) 
+
+destination <- levels(as.factor(fw$dest))
+airports2 <- airports2 %>% filter(faa %in% destination)
+colnames(airports2)[1] <- "dest"
+
+fw <- left_join(fw, airports2, by = "dest")
+fw <- fw %>% filter(!is.na(state))
+fw <- fw %>% mutate(regions = ifelse(state %in% c("AK","WA","OR","ID","MT","WY","CA","NV","AZ","UT","CO","NM","HI"), "west",
+                                     ifelse(state %in% c("ND","SD","NE","KS","MN","IA","MO","WI","IL","IN","MI","OH"),"central",
+                                            ifelse(state %in% c("PA","NY","NJ","CT","RI","MA","VT","NH","ME"),"northeast","south"))))
+
+fw <- fw %>% mutate(stdPrecip = ifelse(precip ==0,NA,
+                                       ifelse(precip <= 0.10,"0.01~0.1",
+                                              ifelse(precip <= 0.20,"0.11~0.20",
+                                                     ifelse(precip <= 0.30,"0.21~0.30",
+                                                            ifelse(precip <= 0.40,"0.31~0.40","Over 0.40"))))))
+
+fw <- fw %>% mutate(stdVisib = ifelse(visib ==0,"0",
+                                       ifelse(visib <= 1,"0~1",
+                                              ifelse(visib <= 2,"1~2",
+                                                     ifelse(visib <= 3,"2~3",
+                                                            ifelse(visib <= 5,"3~5",
+                                                                   ifelse(visib <= 8,"5~8",NA)))))))
+
+# airline data join
+colnames(airlines)[2] <- "airlineName"
+fw <- left_join(fw, airlines,by = "carrier")
+fw$airlineName <- as.factor(fw$airlineName)
+
+# manufacturer ?? (AIRBUS, AIRBUS INDUSTRIE) (CANADAIR, CANADAIR LTD)
+# (MCDONNELL DOUGLAS ~ 3??) 같은 제조사 
+fw[which(fw$manufacturer=="AIRBUS INDUSTRIE"),]$manufacturer <- "AIRBUS"
+fw[which(fw$manufacturer=="CANADAIR LTD"),]$manufacturer <- "CANADAIR"
+fw[which(fw$manufacturer=="MCDONNELL DOUGLAS AIRCRAFT CO"),]$manufacturer <- "MCDONNELL DOUGLAS"
+fw[which(fw$manufacturer=="MCDONNELL DOUGLAS CORPORATION"),]$manufacturer <- "MCDONNELL DOUGLAS"
+
+##### Delayed?
+fw <- fw %>% mutate(checkDelay = ifelse(dep_delay >0, "delayed","ontime"))
+
+```
+
+Origin (by season)
+==============================
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput("originVar", label = "Select Origins",
+            levels(as.factor(fw$origin)))
+selectInput("seasonVar", label = "Select Seasons",
+            levels(as.factor(fw$season)))
+
+```
+
+The data used on this visualization is from R's `nycflights13` package.  
+This package contains information about all flights that departed from NYC (e.g. EWR, JFK and LGA) in 2013: 336,776 flights in total.
+
+If you want to know about more information about used dataset, go to http://github.com/hadley/nycflights13
+
+
+```{r fig.width = 2.4, fig.height = 2}
+dataLocation <- airports %>%
+  filter(faa == "JFK" | faa == "LGA" | faa == "EWR") %>%
+  select(c(faa,name, lat,lon))
+
+leaflet(data = dataLocation) %>%
+  addTiles() %>%
+  addMarkers(lng=~lon, lat=~lat, label=~name)
+
+```
+
+
+Column
+-----------------------------------------------------------------------
+
+### Delay proportion by daytime
+
+```{r}
+
+renderPlotly({
+
+dataVisib <- fw %>% 
+  filter(origin==input$originVar & season ==input$seasonVar)
+  
+d2 <- dataVisib %>% 
+  group_by(partOfDay,checkDelay) %>% 
+  summarise(count=n()) %>% 
+  mutate(perc=count/sum(count)*100)
+
+p <- ggplot(d2, aes(x = partOfDay, 
+               y = perc, 
+               fill = checkDelay)) +
+  geom_bar(stat="identity", width = 0.7) +
+  labs(x = "Part of Day", y = "percent", fill = "checkDelay") +
+  theme_minimal(base_size = 14) +scale_colour_continuous(guide = FALSE)
+
+ggplotly(p)
+})
+```
+
+### Heatmap with prep & visibs
+
+```{r}
+renderHighchart({
+  dataHeat <- fw %>%
+    filter(origin==input$originVar & season ==input$seasonVar &
+             !is.na(stdPrecip) & !is.na(stdVisib) & checkDelay =="delayed")
+
+  dataHeating <- dataHeat %>% group_by(stdPrecip, stdVisib) %>%
+    summarize(delayed = n())
+  hchart(dataHeating, "heatmap",
+         hcaes(x = stdPrecip, y = stdVisib, value = delayed))
+
+})
+
+```
+
+Columns { data-width=350}
+-----------------------------------------------------------------------
+
+### Where does planes go to?
+```{r}
+renderHighchart({
+
+whichRegions <- fw %>% filter(origin==input$originVar & 
+                             season ==input$seasonVar & 
+                             !is.na(regions))
+  
+d <- whichRegions %>% 
+  group_by(regions) %>% 
+  summarise(count=n()) %>% 
+  mutate(perc=count/sum(count)*100)
+
+hchart(d, "pie", hcaes(x = regions, y = perc))
+})
+```
+
+### Plane Size
+
+```{r}
+renderHighchart({
+
+dataplane <- fw %>% filter(origin==input$originVar & 
+                             season ==input$seasonVar & 
+                             !is.na(planeSize))
+  
+d1 <- dataplane %>% 
+  group_by(planeSize) %>% 
+  summarise(count=n()) %>% 
+  mutate(perc=count/sum(count)*100)
+
+hchart(d1, "pie", hcaes(x = planeSize, y = perc))
+})
+```
+
+
+### Wind Speed by hour
+```{r}
+
+renderPlot({
+datat <- fw %>% filter(origin==input$originVar & season ==input$seasonVar)
+
+#datat <- fw %>% filter(origin=="JFK" & season =="fall")
+
+datat2 <- datat %>% group_by(hour) %>% summarise(Mean = mean(wind_speed,na.rm = T)) %>% as.data.frame()
+
+windgraph <- ggplot(datat2 , aes(x = hour,y = Mean, group = 1, colour = "red")) +
+  geom_smooth(span = 0.25,show.legend = F) + scale_x_continuous(breaks = seq(1,24,by = 1)) 
+#+ scale_y_continuous(limits = c(0,1050), breaks = seq(0,1050,by=5))
+
+windgraph
+
+})
+
+
+```
+
+Origin (by carrier)
+==============================
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+
+  selectInput("originVar2", label = "Select Origins",
+              levels(as.factor(fw$origin)),selected = "LGA")
+  selectInput("carrierVar", label = "Select Company",
+              levels(as.factor(fw$airlineName)),
+              selected = "Southwest Airlines Co.")
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Total flights
+
+```{r}
+renderValueBox({
+totalData <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2)
+
+total <- nrow(totalData)
+valueBox(total, icon = "ion-android-plane")
+})
+
+# fw %>% filter(airlineName == "ExpressJet Airlines Inc." &
+#                            origin == "JFK")
+```
+
+### Delayed?
+
+```{r}
+renderGauge({
+  
+  dataRating <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2)
+
+  rating <- round(table(dataRating$checkDelay)/nrow(dataRating) *100,2)
+  
+  gauge(as.character(rating[[1]]), min = 0, max = 100,symbol = "%",gaugeSectors(
+    success = c(0,20),warning = c(21,40), danger = c(41, 100)
+    ))
+
+})
+```
+
+### Average Air Time
+
+```{r}
+renderValueBox({
+totalData <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2)
+
+airTime <- mean(totalData$arr_time, na.rm = T)
+valueBox(round(airTime,digits = 2), icon = "ion-speedometer")
+})
+
+```
+
+### Carrier/Total carrier at Origin
+
+```{r}
+
+renderValueBox({
+
+  origintotal <- fw %>% filter(origin == input$originVar2)
+  carrierplus <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2)
+
+  percent <- nrow(carrierplus) / nrow(origintotal) * 100
+  
+  valueBox(round(percent,2),
+           icon = ifelse(percent >=15,
+                         "ion-android-star",
+                         "ion-android-star-outline"))
+  
+})
+
+```
+
+Row { data-height=550}
+-----------------------------------------------------------------------
+
+### Manufacturer 
+
+```{r}
+  
+renderHighchart({
+
+  manufacturerdata <- fw %>% filter(airlineName == input$carrierVar &
+                           origin == input$originVar2 & !is.na(manufacturer))
+  
+  if(nrow(manufacturerdata) !=0){
+  countManufacturer <- count(manufacturerdata,
+                             manufacturer,checkDelay) %>% as.data.frame()
+  hchart(countManufacturer, "bar",
+         hcaes(x = manufacturer, y = n,group = checkDelay))
+}else{print("hello world")}
+
+})
+
+```
+
+### Wind Speed & hour by Season
+
+```{r}
+# renderPlot({
+# datat <- fw %>% filter(origin==input$originVar2 & season ==input$carrierVar)
+# 
+# datat2 <- datat %>% group_by(hour) %>% summarise(Mean = mean(wind_speed,na.rm = T)) %>% as.data.frame()
+# 
+# #create a new dataframe
+# newdfr = expand.grid(X = seq(from = 1, to=24, by = 1), Season = c("Spring", "Summer", "Fall", "Winter"))
+# 
+# 
+# ggplot(datat2 , aes(x = X,y = Mean, group =1, color = condition)) + ylab("Wind Speed") + xlab("hour") + geom_line(data = newdfr, x = X, y = season)
+# 
+# })
+
+```
+
+
+
+
+
+
+
+
+
+
