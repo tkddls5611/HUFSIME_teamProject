@@ -1,16 +1,16 @@
-# HUFSIMEandSTAT ÆÀÇÁ·ÎÁ§Æ® ¸ñ·Ï
+# HUFSIMEandSTAT íŒ€í”„ë¡œì íŠ¸ ëª©ë¡
 
-IME : »ê¾÷°æ¿µ°øÇÐ , STAT : Åë°èÇÐ
+IME : ì‚°ì—…ê²½ì˜ê³µí•™ , STAT : í†µê³„í•™
 
-2015_1ÇÐ±â_°øÇÐÅë°è(ÆÀ ¾ÆÈ©½Ã¹Ý) : (IME) Á÷Á¢ ¼³¹®Á¶»çÇÑ ¹®Ç×À» ¹ÙÅÁÀ¸·Î Åë°èºÐ¼® [¿¢¼¿]
-2015_2ÇÐ±â_°´Ã¼ÁöÇâÇÁ·Î±×·¡¹Ö(ÆÀ DA2GIM) : (IME) °ÔÀÓ UNO Àü·« [JAVA]
-2015_2ÇÐ±â_½ÇÇè°èÈ¹ ¹× ºÐ¼®(ÆÀ ÇÁ·ÎÁ§Æ®) : (IME) 1. ¹«°Ô Ãß ½ÇÇè 2. Á¾ÀÌ Çï¸®ÄßÅÍ ½ÇÇè [MINITAB]
-2016_1ÇÐ±â_»ê¾÷Á¤º¸ÇÁ·Î±×·¡¹Ö(ÆÀ LeeSSi) : (IME) Ã¢°í ³» ¸ñÀç °ÇÁ¶ ÃÖÀû ½Ã°£ ¾Ë°í¸®Áò ¼³°è ¹× JSP UI ±¸Çö [JAVA & JSP(HTML)]
-2016_2ÇÐ±â_µ¥ÀÌÅÍ¸¶ÀÌ´×(ÆÀ Call You Mining) : (IME) ¿µÈ­Á¤º¸(by Kaggle)·Î ÈïÇà ¿©ºÎ ¿¹Ãø [R & SPSS STATISTICS]
-2017_2ÇÐ±â_µ¥ÀÌÅÍ¸¶ÀÌ´×(ÆÀ ¶óÀÌ¾ð) : (STAT) Á÷ÀåÀÎ ½ºÆ®·¹½º ¿äÀÎ(by Kaggle) ºÐ¼® [R]
-2017_2ÇÐ±â_µ¥ÀÌÅÍ»ç½Ã¾ð½º¼¼¹Ì³ª(ÆÀ µ¥»ç) : (STAT) Ç×°ø±â Áö¿¬À² °è»ê ¹× dashboard Á¦ÀÛ [R(shiny&flexdashboard)]
-2017_2ÇÐ±â_µ¥ÀÌÅÍ¾î³Ú¸®Æ½½ºÀÀ¿ë(ÆÀ VÀÎ»çÀÌµå) : (IME) ¿µÈ­ ¸ÅÃâ¾× Á¤º¸¸¦ ÀÌ¿ëÇÏ¿© º°Á¡, ¿¹»ó ¸ÅÃâ¾× ¿¹Ãø [R]
-2017_Á¹¾÷ÇÁ·ÎÁ§Æ®(ÆÀ ±×°ÍÀÌ ¾Ë°í½Í´Ù) : (IME)
-	PCA(°øÁ¤½Ã½ºÅÛºÐ¼®), MSA(ÃøÁ¤½Ã½ºÅÛºÐ¼®), SI(»ùÇÃ¸µ °Ë»ç) ÆÐÅ°Áö 3°³¿Í
-	RcmdrPlugin.PCA/MSA/SI ÀÇ RcmdrPlugin ÆÐÅ°Áö 3°³ 
-	ÃÑ 6°³ÀÇ R ÆÐÅ°Áö¸¦ Á¦ÀÛ ( Çö °¢ code documentation ÁøÇà Áß Áß´Ü)
+2015_1í•™ê¸°_ê³µí•™í†µê³„(íŒ€ ì•„í™‰ì‹œë°˜) : (IME) ì§ì ‘ ì„¤ë¬¸ì¡°ì‚¬í•œ ë¬¸í•­ì„ ë°”íƒ•ìœ¼ë¡œ í†µê³„ë¶„ì„ [ì—‘ì…€]
+2015_2í•™ê¸°_ê°ì²´ì§€í–¥í”„ë¡œê·¸ëž˜ë°(íŒ€ DA2GIM) : (IME) ê²Œìž„ UNO ì „ëžµ [JAVA]
+2015_2í•™ê¸°_ì‹¤í—˜ê³„íš ë° ë¶„ì„(íŒ€ í”„ë¡œì íŠ¸) : (IME) 1. ë¬´ê²Œ ì¶” ì‹¤í—˜ 2. ì¢…ì´ í—¬ë¦¬ì½¥í„° ì‹¤í—˜ [MINITAB]
+2016_1í•™ê¸°_ì‚°ì—…ì •ë³´í”„ë¡œê·¸ëž˜ë°(íŒ€ LeeSSi) : (IME) ì°½ê³  ë‚´ ëª©ìž¬ ê±´ì¡° ìµœì  ì‹œê°„ ì•Œê³ ë¦¬ì¦˜ ì„¤ê³„ ë° JSP UI êµ¬í˜„ [JAVA & JSP(HTML)]
+2016_2í•™ê¸°_ë°ì´í„°ë§ˆì´ë‹(íŒ€ Call You Mining) : (IME) ì˜í™”ì •ë³´(by Kaggle)ë¡œ í¥í–‰ ì—¬ë¶€ ì˜ˆì¸¡ [R & SPSS STATISTICS]
+2017_2í•™ê¸°_ë°ì´í„°ë§ˆì´ë‹(íŒ€ ë¼ì´ì–¸) : (STAT) ì§ìž¥ì¸ ìŠ¤íŠ¸ë ˆìŠ¤ ìš”ì¸(by Kaggle) ë¶„ì„ [R]
+2017_2í•™ê¸°_ë°ì´í„°ì‚¬ì‹œì–¸ìŠ¤ì„¸ë¯¸ë‚˜(íŒ€ ë°ì‚¬) : (STAT) í•­ê³µê¸° ì§€ì—°ìœ¨ ê³„ì‚° ë° dashboard ì œìž‘ [R(shiny&flexdashboard)]
+2017_2í•™ê¸°_ë°ì´í„°ì–´ë„¬ë¦¬í‹±ìŠ¤ì‘ìš©(íŒ€ Vì¸ì‚¬ì´ë“œ) : (IME) ì˜í™” ë§¤ì¶œì•¡ ì •ë³´ë¥¼ ì´ìš©í•˜ì—¬ ë³„ì , ì˜ˆìƒ ë§¤ì¶œì•¡ ì˜ˆì¸¡ [R]
+2017_ì¡¸ì—…í”„ë¡œì íŠ¸(íŒ€ ê·¸ê²ƒì´ Rê³ ì‹¶ë‹¤) : (IME)
+	PCA(ê³µì •ì‹œìŠ¤í…œë¶„ì„), MSA(ì¸¡ì •ì‹œìŠ¤í…œë¶„ì„), SI(ìƒ˜í”Œë§ ê²€ì‚¬) íŒ¨í‚¤ì§€ 3ê°œì™€
+	RcmdrPlugin.PCA/MSA/SI ì˜ RcmdrPlugin íŒ¨í‚¤ì§€ 3ê°œ 
+	ì´ 6ê°œì˜ R íŒ¨í‚¤ì§€ë¥¼ ì œìž‘ ( í˜„ ê° code documentation ì§„í–‰ ì¤‘ ì¤‘ë‹¨)
